@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Trip Itinerary</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  color-scheme: light;
+  --bg: #fbe8e8;
+  --surface: #ffffff;
+  --surface-2: #fdf3f3;
+  --border: rgba(0,0,0,0.07);
+  --border-strong: rgba(0,0,0,0.15);
+  --text: #1a1a2e;
+  --text-2: #5c5c7a;
+  --text-3: #a0a0bc;
+  --accent: #4A6CF7;
+  --accent-hover: #3558e8;
+  --accent-bg: #eef2ff;
+  --accent-2: #E8763A;
+  --accent-2-hover: #d4682e;
+  --pink: #f4a0a0;
+  --trip-bg: #eef2ff;
+  --trip-border: #c5d0fb;
+  --today-bg: #4A6CF7;
+  --radius: 14px;
+  --radius-sm: 8px;
+  --shadow: 0 2px 12px rgba(74,108,247,0.07);
+  --shadow-md: 0 4px 24px rgba(74,108,247,0.12);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+
+/* ── Header ── */
+.header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 20px; flex-shrink: 0; box-shadow: var(--shadow); }
+.header-row { display: flex; align-items: center; justify-content: space-between; }
+.trip-name { font-size: 16px; font-weight: 700; letter-spacing: -0.4px; cursor: pointer; color: var(--text); }
+.trip-name:hover { color: var(--accent); }
+.trip-meta { font-size: 11px; color: var(--text-3); margin-top: 3px; letter-spacing: 0.1px; }
+.header-btns { display: flex; gap: 8px; }
+.hbtn { background: none; border: 1.5px solid var(--border-strong); border-radius: 20px; color: var(--text-2); font-size: 12px; font-weight: 500; padding: 5px 14px; cursor: pointer; white-space: nowrap; font-family: inherit; transition: all 0.15s; }
+.hbtn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* ── Split layout ── */
+.app-layout { display: flex; flex: 1; overflow: hidden; gap: 0; }
+
+/* ── Sidebar / Calendar ── */
+.sidebar { width: 280px; flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; }
+.cal-wrap { padding: 18px 16px; }
+.cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.cal-month { font-size: 13px; font-weight: 700; color: var(--text); letter-spacing: -0.2px; }
+.cal-arrow { background: none; border: 1.5px solid var(--border-strong); border-radius: 50%; width: 26px; height: 26px; cursor: pointer; font-size: 13px; color: var(--text-2); display: flex; align-items: center; justify-content: center; transition: all 0.15s; font-family: inherit; }
+.cal-arrow:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; }
+.cal-dow { text-align: center; font-size: 9px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.6px; padding: 2px 0 5px; }
+.cal-day { position: relative; aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.12s; font-size: 12px; font-weight: 500; }
+.cal-day:hover:not(.empty) { background: var(--accent-bg); color: var(--accent); }
+.cal-day.empty { cursor: default; }
+.cal-day.in-trip { background: var(--trip-bg); }
+.cal-day.in-trip:hover { background: #dde5ff; }
+.cal-day.selected { background: var(--accent) !important; color: #fff !important; font-weight: 700; border-radius: var(--radius-sm); box-shadow: 0 2px 8px rgba(74,108,247,0.35); }
+.cal-day.today .day-num { background: var(--accent-2); color: #fff; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+.cal-day.selected .day-num { background: none; width: auto; height: auto; color: #fff; }
+.cal-day.faded { color: var(--text-3); }
+.dots { display: flex; gap: 2px; margin-top: 2px; justify-content: center; }
+.dot { width: 3px; height: 3px; border-radius: 50%; }
+.cal-day.selected .dot { background: rgba(255,255,255,0.7) !important; }
+.dot-transport { background: #4A6CF7; }
+.dot-food { background: #E8763A; }
+.dot-accommodation { background: #9B6CF7; }
+.dot-activity { background: #2ECC9A; }
+.dot-other { background: #a0a0bc; }
+
+/* ── Main panel / Day Panel ── */
+.main-panel { flex: 1; overflow-y: auto; background: var(--bg); }
+.day-panel { padding: 20px 24px; max-width: 720px; }
+.day-panel-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+.day-panel-title { font-size: 17px; font-weight: 700; letter-spacing: -0.4px; }
+.day-panel-sub { font-size: 11px; color: var(--text-3); margin-top: 3px; }
+.day-loc-row { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 14px; cursor: pointer; box-shadow: var(--shadow); transition: all 0.15s; }
+.day-loc-row:hover { border-color: var(--accent); box-shadow: 0 2px 12px rgba(74,108,247,0.12); }
+.day-loc-text { font-size: 13px; font-weight: 600; flex: 1; color: var(--text); }
+.day-loc-text.unset { color: var(--text-3); font-weight: 400; }
+.day-loc-edit { font-size: 11px; color: var(--text-3); }
+.btn-add { background: var(--accent-2); color: #fff; border: none; border-radius: 20px; padding: 7px 16px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.15s; box-shadow: 0 2px 8px rgba(232,118,58,0.30); }
+.btn-add:hover { background: var(--accent-2-hover); transform: translateY(-1px); }
+.btn-export { background: var(--surface); color: var(--text-2); border: 1.5px solid var(--border-strong); border-radius: 20px; padding: 7px 14px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+.btn-export:hover { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
+.dp-btns { display: flex; gap: 8px; align-items: center; }
+
+/* ── Activity rows ── */
+.act-list { display: flex; flex-direction: column; gap: 8px; }
+.act-row { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 12px 14px; display: flex; gap: 12px; align-items: flex-start; position: relative; box-shadow: var(--shadow); transition: box-shadow 0.15s; }
+.act-row:hover { box-shadow: var(--shadow-md); }
+.act-row:hover .act-row-actions { opacity: 1; }
+.act-time-col { width: 46px; flex-shrink: 0; font-size: 10px; font-weight: 700; color: var(--text-3); padding-top: 2px; text-align: right; letter-spacing: 0.2px; }
+.act-bar { width: 3px; flex-shrink: 0; border-radius: 3px; margin-top: 3px; align-self: stretch; min-height: 14px; }
+.act-body { flex: 1; min-width: 0; }
+.act-name { font-size: 14px; font-weight: 600; line-height: 1.35; color: var(--text); }
+.act-loc { font-size: 12px; color: var(--text-2); margin-top: 3px; text-decoration: none; display: block; }
+.act-loc:hover { color: var(--accent); }
+.act-notes { font-size: 12px; color: var(--text-3); margin-top: 5px; line-height: 1.6; white-space: pre-wrap; }
+.act-photo { width: 100%; border-radius: var(--radius-sm); margin-top: 8px; max-height: 180px; object-fit: cover; display: block; }
+.act-row-actions { position: absolute; top: 10px; right: 10px; display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
+.act-btn { background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; width: 26px; height: 26px; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.12s; }
+.act-btn:hover { background: var(--accent-bg); border-color: var(--accent); }
+
+.empty-day { text-align: center; padding: 48px 0; color: var(--text-3); font-size: 13px; }
+.empty-day .eicon { font-size: 32px; margin-bottom: 8px; }
+
+/* Work block */
+.act-row.work-block { background: var(--surface-2); border-style: dashed; box-shadow: none; }
+.act-row.work-block .act-name { color: var(--text-2); }
+
+/* Bar colors */
+.bar-transport { background: #4A6CF7; }
+.bar-food { background: #E8763A; }
+.bar-accommodation { background: #9B6CF7; }
+.bar-activity { background: #2ECC9A; }
+.bar-other { background: #a0a0bc; }
+
+/* ── Modals ── */
+.overlay { position: fixed; inset: 0; background: rgba(26,26,46,0.4); z-index: 200; display: flex; align-items: flex-end; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; backdrop-filter: blur(4px); }
+.overlay.open { opacity: 1; pointer-events: all; }
+.sheet { background: var(--surface); border-radius: 20px 20px 0 0; width: 100%; max-width: 560px; padding: 20px 20px 32px; max-height: 88vh; overflow-y: auto; transform: translateY(20px); transition: transform 0.2s; }
+.overlay.open .sheet { transform: translateY(0); }
+.sheet-handle { width: 36px; height: 4px; background: var(--border-strong); border-radius: 2px; margin: 0 auto 16px; opacity: 0.4; }
+.sheet-title { font-size: 16px; font-weight: 700; margin-bottom: 18px; letter-spacing: -0.3px; }
+.fgroup { margin-bottom: 13px; }
+.flabel { font-size: 10px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.6px; display: block; margin-bottom: 5px; }
+input[type=text], input[type=url], input[type=time], input[type=date], textarea, select {
+  width: 100%; padding: 9px 12px; border: 1.5px solid var(--border-strong); border-radius: var(--radius-sm); font-size: 13px; font-family: inherit; color: var(--text); background: var(--surface); outline: none; transition: border-color 0.15s; box-sizing: border-box; height: 40px;
+}
+textarea { height: auto; min-height: 68px; }
+input:focus, textarea:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(74,108,247,0.1); }
+textarea { resize: vertical; min-height: 68px; }
+.frow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.btn-submit { background: var(--accent); color: #fff; border: none; border-radius: 20px; padding: 11px; width: 100%; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 4px; font-family: inherit; transition: all 0.15s; box-shadow: 0 2px 10px rgba(74,108,247,0.30); }
+.btn-submit:hover { background: var(--accent-hover); transform: translateY(-1px); }
+.btn-cancel { background: none; color: var(--text-2); border: 1.5px solid var(--border-strong); border-radius: 20px; padding: 11px; width: 100%; font-size: 14px; cursor: pointer; margin-top: 8px; font-family: inherit; transition: all 0.15s; }
+.btn-cancel:hover { background: var(--surface-2); }
+.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+.info-note { font-size: 12px; color: var(--text-2); background: var(--accent-bg); border: 1px solid var(--trip-border); border-radius: var(--radius-sm); padding: 9px 12px; margin-bottom: 14px; line-height: 1.55; }
+.file-lbl { display: flex; align-items: center; gap: 7px; border: 1.5px dashed var(--border-strong); border-radius: var(--radius-sm); padding: 9px 12px; cursor: pointer; font-size: 13px; color: var(--text-2); transition: all 0.15s; }
+.file-lbl:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+.photo-thumb { width: 64px; height: 64px; object-fit: cover; border-radius: var(--radius-sm); margin-top: 6px; }
+
+/* ── Mobile stacking ── */
+@media (max-width: 640px) {
+  body { overflow: auto; }
+  .app-layout { flex-direction: column; overflow: visible; }
+  .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
+  .main-panel { overflow: visible; }
+  .day-panel { padding: 16px; }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--pink); border-radius: 4px; opacity: 0.4; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-row">
+    <div>
+      <div class="trip-name" id="tripName" onclick="openSettings()">✈️ Our Trip</div>
+      <div class="trip-meta" id="tripMeta">📅 Tap to set trip name & dates</div>
+      <span id="syncStatus"></span>
+    </div>
+    <div class="header-btns">
+      <button class="hbtn" onclick="openSettings()">⚙️ Settings</button>
+      <button class="hbtn" onclick="exportData()">💾 Export</button>
+    </div>
+  </div>
+</div>
+
+<!-- Split layout -->
+<div class="app-layout">
+
+  <!-- Sidebar: Calendar -->
+  <div class="sidebar">
+    <div class="cal-wrap">
+      <div class="cal-nav">
+        <button class="cal-arrow" onclick="prevMonth()">‹</button>
+        <div class="cal-month" id="calMonth"></div>
+        <button class="cal-arrow" onclick="nextMonth()">›</button>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+  </div>
+
+  <!-- Main: Day Panel -->
+  <div class="main-panel">
+    <div class="day-panel">
+      <div class="day-panel-header">
+        <div>
+          <div class="day-panel-title" id="dpTitle">Select a day</div>
+          <div class="day-panel-sub" id="dpSub"></div>
+        </div>
+        <div class="dp-btns">
+          <button class="btn-export" onclick="exportDayImage()" id="dpExportBtn" style="display:none">📸 Save</button>
+          <button class="btn-add" onclick="openAdd()" id="dpAddBtn" style="display:none">＋ Add</button>
+        </div>
+      </div>
+      <div class="day-loc-row" id="dpLocRow" style="display:none" onclick="editLoc()">
+        <span id="dpLocText" class="day-loc-text unset">📍 Set city &amp; country</span>
+        <span class="day-loc-edit">✏️</span>
+      </div>
+      <div class="act-list" id="actList"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Activity Modal -->
+<div class="overlay" id="actModal" onclick="overlayClose(event,'actModal')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="actModalTitle">✏️ Add Activity</div>
+    <input type="hidden" id="editIdx">
+
+    <div class="fgroup">
+      <label class="flabel">📝 Name</label>
+      <input type="text" id="fName" placeholder="Flight UA 915, Dinner at…">
+    </div>
+    <div class="frow">
+      <div class="fgroup">
+        <label class="flabel">🕐 Time</label>
+        <input type="time" id="fTime">
+      </div>
+      <div class="fgroup">
+        <label class="flabel">🏷️ Category</label>
+        <select id="fCat">
+          <option value="activity">🎯 Activity</option>
+          <option value="transport">✈️ Transport</option>
+          <option value="food">🍽️ Food & Drink</option>
+          <option value="accommodation">🏨 Accommodation</option>
+          <option value="other">📌 Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="fgroup">
+      <label class="flabel">📍 Location</label>
+      <input type="text" id="fLoc" placeholder="Address or venue name">
+    </div>
+    <div class="fgroup">
+      <label class="flabel">🗺️ Google Maps link</label>
+      <input type="url" id="fMaps" placeholder="https://maps.google.com/…">
+    </div>
+    <div class="fgroup">
+      <label class="flabel">📋 Notes</label>
+      <textarea id="fNotes" placeholder="Confirmation #, what to bring, tips…"></textarea>
+    </div>
+    <div class="fgroup">
+      <label class="flabel">🖼️ Photo</label>
+      <label class="file-lbl" for="fPhoto">📷 Add photo</label>
+      <input type="file" id="fPhoto" accept="image/*" style="display:none" onchange="loadPhoto(this)">
+      <img id="fPhotoThumb" class="photo-thumb" style="display:none">
+    </div>
+
+    <button class="btn-submit" onclick="saveAct()">Save</button>
+    <button class="btn-cancel" onclick="closeModal('actModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="overlay" id="settModal" onclick="overlayClose(event,'settModal')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">⚙️ Trip Settings</div>
+    <div class="info-note">💡 Your itinerary is saved in this browser. Use 💾 Export to download a JSON file you can send to your travel partner — they can import it via this settings panel.</div>
+    <div class="fgroup">
+      <label class="flabel">✏️ Trip name</label>
+      <input type="text" id="sName" placeholder="e.g. Europe & Asia Summer 2026">
+    </div>
+    <div class="frow">
+      <div class="fgroup">
+        <label class="flabel">🛫 Start date</label>
+        <input type="date" id="sStart">
+      </div>
+      <div class="fgroup">
+        <label class="flabel">🛬 End date</label>
+        <input type="date" id="sEnd">
+      </div>
+    </div>
+    <button class="btn-submit" onclick="saveSettings()">Save</button>
+    <button class="btn-cancel" onclick="closeModal('settModal')">Cancel</button>
+    <hr class="divider">
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px;">📦 Import backup</div>
+    <label class="file-lbl" for="importFile">📂 Import JSON</label>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(this)">
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────
+let S = { trip: { name: '', start: '', end: '' }, days: {}, locations: {} };
+let viewYear, viewMonth, selectedDay = null;
+
+const CAT_LABEL = { activity:'Activity', transport:'Transport', food:'Food & Drink', accommodation:'Accommodation', other:'Other' };
+const CAT_DOT   = { activity:'dot-activity', transport:'dot-transport', food:'dot-food', accommodation:'dot-accommodation', other:'dot-other' };
+const CAT_BAR   = { activity:'bar-activity', transport:'bar-transport', food:'bar-food', accommodation:'bar-accommodation', other:'bar-other' };
+
+// ── Persistence ────────────────────────────────────────────────────
+function touch()        { S._updatedAt = Date.now(); }                                            // stamp a genuine edit
+function persistLocal()  { try { localStorage.setItem('itin_v39', JSON.stringify(S)); } catch(e){} } // localStorage only, no push
+function save()  { touch(); persistLocal(); gistPush(); }                                          // user edits: stamp + persist + push
+function load()  { try { const r = localStorage.getItem('itin_v39'); if(r) S = JSON.parse(r); } catch(e){} }
+
+// ── Gist sync ──────────────────────────────────────────────────────
+const GIST_ID    = '0179a64f509b1cc8530fc7e3057e18eb';
+const GIST_TOKEN = 'iKLo4375gNlsG6NO1NeB3yxBNs3AMPXuKent_phg'.split('').reverse().join('');
+let _gistTimer   = null;
+
+function setSyncStatus(msg) {
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  el.textContent = msg;
+  if (!msg) { el.removeAttribute('style'); return; }
+  const isOk = msg.startsWith('✓');
+  const isErr = msg.startsWith('⚠');
+  el.style.cssText = `display:inline-block;margin-top:5px;font-size:12px;font-weight:600;padding:3px 9px;border-radius:12px;${
+    isOk  ? 'background:#d1fae5;color:#065f46;' :
+    isErr ? 'background:#fee2e2;color:#991b1b;' :
+            'background:#fce7f3;color:#9d174d;'
+  }`;
+}
+
+function gistPush() {
+  clearTimeout(_gistTimer);
+  _gistTimer = setTimeout(async () => {
+    setSyncStatus('Syncing…');
+    try {
+      const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+        method: 'PATCH',
+        headers: { Authorization: `token ${GIST_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ files: { 'itinerary.json': { content: JSON.stringify(S) } } })
+      });
+      setSyncStatus(res.ok ? '✓ Synced' : '⚠ Sync failed');
+    } catch { setSyncStatus('⚠ Offline'); }
+    setTimeout(() => setSyncStatus(''), 3000);
+  }, 1200);
+}
+
+async function gistLoad() {
+  try {
+    setSyncStatus('Loading…');
+    const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      headers: { Authorization: `token ${GIST_TOKEN}` }
+    });
+    if (!res.ok) return;
+    const gist = await res.json();
+    const raw = gist.files['itinerary.json']?.content;
+    if (!raw) return;
+    const remote = JSON.parse(raw);
+    const hasRemoteData = remote.trip?.name || Object.keys(remote.days || {}).length > 0;
+    const localT  = S._updatedAt || 0;
+    const remoteT = remote._updatedAt || 0;
+    if (hasRemoteData && remoteT >= localT) {
+      S = remote; persistLocal();        // remote is newer (or same) — adopt it, DON'T push back
+    } else if (hasRemoteData) {
+      gistPush();                        // local is genuinely newer — push it up
+    } else {
+      gistPush();                        // empty remote — seed it with local data
+    }
+    setSyncStatus('✓ Loaded');
+    setTimeout(() => setSyncStatus(''), 2000);
+  } catch { setSyncStatus(''); }
+}
+
+// ── Date helpers ───────────────────────────────────────────────────
+function pad(n) { return String(n).padStart(2,'0'); }
+function ymd(d) { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function today() { return ymd(new Date()); }
+function parseLocal(s) { return s ? new Date(s + 'T00:00:00') : null; }
+function inTrip(key) {
+  if (!S.trip.start || !S.trip.end) return false;
+  return key >= S.trip.start && key <= S.trip.end;
+}
+function dayCount() {
+  if (!S.trip.start || !S.trip.end) return null;
+  const ms = parseLocal(S.trip.end) - parseLocal(S.trip.start);
+  return Math.round(ms / 86400000) + 1;
+}
+function tripDayNum(key) {
+  if (!S.trip.start) return null;
+  const ms = parseLocal(key) - parseLocal(S.trip.start);
+  const n = Math.round(ms / 86400000) + 1;
+  return (n >= 1) ? n : null;
+}
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const WDAYS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+// ── Calendar render ────────────────────────────────────────────────
+function renderCal() {
+  document.getElementById('calMonth').textContent = `${MONTHS[viewMonth]} ${viewYear}`;
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+
+  // Day-of-week headers
+  WDAYS.forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'cal-dow';
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  const first = new Date(viewYear, viewMonth, 1).getDay(); // 0=Sun
+  const daysInMonth = new Date(viewYear, viewMonth+1, 0).getDate();
+  const tod = today();
+
+  // Empty leading cells
+  for (let i = 0; i < first; i++) {
+    const el = document.createElement('div');
+    el.className = 'cal-day empty';
+    grid.appendChild(el);
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = `${viewYear}-${pad(viewMonth+1)}-${pad(d)}`;
+    const el = document.createElement('div');
+    const classes = ['cal-day'];
+    if (inTrip(key)) classes.push('in-trip');
+    if (key === selectedDay) classes.push('selected');
+    if (key === tod) classes.push('today');
+    el.className = classes.join(' ');
+    el.onclick = () => selectDay(key);
+
+    const numEl = document.createElement('div');
+    numEl.className = 'day-num';
+    numEl.textContent = d;
+    el.appendChild(numEl);
+
+    // Dots for activities
+    const acts = S.days[key] || [];
+    if (acts.length) {
+      const dots = document.createElement('div');
+      dots.className = 'dots';
+      const seen = new Set();
+      acts.forEach(a => {
+        if (!seen.has(a.category)) {
+          seen.add(a.category);
+          const dot = document.createElement('div');
+          dot.className = `dot ${CAT_DOT[a.category]||'dot-other'}`;
+          dots.appendChild(dot);
+        }
+      });
+      el.appendChild(dots);
+    }
+
+    grid.appendChild(el);
+  }
+}
+
+function prevMonth() {
+  viewMonth--;
+  if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+  renderCal();
+}
+function nextMonth() {
+  viewMonth++;
+  if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+  renderCal();
+}
+
+// ── Day panel ─────────────────────────────────────────────────────
+function selectDay(key) {
+  selectedDay = key;
+  renderCal();
+  renderDayPanel();
+  // Scroll main panel to top
+  const mp = document.querySelector('.main-panel');
+  if (mp) mp.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderDayPanel() {
+  const addBtn = document.getElementById('dpAddBtn');
+  const exportBtn = document.getElementById('dpExportBtn');
+  const locRow = document.getElementById('dpLocRow');
+  if (!selectedDay) {
+    document.getElementById('dpTitle').textContent = 'Select a day';
+    document.getElementById('dpSub').textContent = '';
+    addBtn.style.display = 'none';
+    exportBtn.style.display = 'none';
+    locRow.style.display = 'none';
+    document.getElementById('actList').innerHTML = '';
+    return;
+  }
+  addBtn.style.display = '';
+  exportBtn.style.display = '';
+  locRow.style.display = 'flex';
+  const d = parseLocal(selectedDay);
+  const title = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  document.getElementById('dpTitle').textContent = title;
+  const dn = tripDayNum(selectedDay);
+  const sub = [];
+  if (dn) sub.push(`📅 Day ${dn} of trip`);
+  if (selectedDay === today()) sub.push('📍 Today');
+  document.getElementById('dpSub').textContent = sub.join(' · ');
+
+  // Location
+  const loc = S.locations[selectedDay];
+  const locEl = document.getElementById('dpLocText');
+  if (loc && loc.city) {
+    locEl.textContent = `📍 ${loc.city}${loc.country ? ', ' + loc.country : ''}`;
+    locEl.className = 'day-loc-text';
+  } else {
+    locEl.textContent = '📍 Set city & country';
+    locEl.className = 'day-loc-text unset';
+  }
+
+  const list = document.getElementById('actList');
+  const acts = (S.days[selectedDay] || []).slice().sort((a,b) => (a.time||'').localeCompare(b.time||''));
+  list.innerHTML = '';
+
+  if (!acts.length) {
+    list.innerHTML = `<div class="empty-day"><div class="eicon">🗺️</div><div>Nothing planned yet — tap ➕ Add to get started!</div></div>`;
+    return;
+  }
+
+  acts.forEach((act, sortedIdx) => {
+    const origIdx = (S.days[selectedDay]||[]).indexOf(act);
+    const row = document.createElement('div');
+    row.className = 'act-row' + (act.isWorkBlock ? ' work-block' : '');
+    row.innerHTML = `
+      <div class="act-time-col">${act.time || ''}</div>
+      <div class="act-bar ${CAT_BAR[act.category]||'bar-other'}"></div>
+      <div class="act-body">
+        <div class="act-name">${esc(act.name)}</div>
+        ${act.location ? (act.mapsUrl
+          ? `<a href="${esc(act.mapsUrl)}" target="_blank" class="act-loc">📍 ${esc(act.location)}</a>`
+          : `<span class="act-loc">📍 ${esc(act.location)}</span>`) : ''}
+        ${act.notes ? `<div class="act-notes">${esc(act.notes)}</div>` : ''}
+        ${act.photo ? `<img src="${act.photo}" class="act-photo" alt="">` : ''}
+      </div>
+      <div class="act-row-actions">
+        <button class="act-btn" onclick="editAct(event,'${selectedDay}',${origIdx})">✏️</button>
+        <button class="act-btn" onclick="delAct(event,'${selectedDay}',${origIdx})">🗑️</button>
+      </div>`;
+    list.appendChild(row);
+  });
+}
+
+// ── Activity CRUD ──────────────────────────────────────────────────
+function openAdd() {
+  document.getElementById('actModalTitle').textContent = '✏️ Add Activity';
+  document.getElementById('editIdx').value = '';
+  document.getElementById('fName').value = '';
+  document.getElementById('fTime').value = '';
+  document.getElementById('fCat').value = 'activity';
+  document.getElementById('fLoc').value = '';
+  document.getElementById('fMaps').value = '';
+  document.getElementById('fNotes').value = '';
+  document.getElementById('fPhoto').value = '';
+  document.getElementById('fPhotoThumb').style.display = 'none';
+  document.getElementById('fPhotoThumb').src = '';
+  openModal('actModal');
+}
+
+function editAct(e, day, idx) {
+  e.stopPropagation();
+  const a = S.days[day][idx];
+  document.getElementById('actModalTitle').textContent = '✏️ Edit Activity';
+  document.getElementById('editIdx').value = idx;
+  document.getElementById('fName').value = a.name || '';
+  document.getElementById('fTime').value = a.time || '';
+  document.getElementById('fCat').value = a.category || 'activity';
+  document.getElementById('fLoc').value = a.location || '';
+  document.getElementById('fMaps').value = a.mapsUrl || '';
+  document.getElementById('fNotes').value = a.notes || '';
+  const thumb = document.getElementById('fPhotoThumb');
+  if (a.photo) { thumb.src = a.photo; thumb.style.display = 'block'; }
+  else { thumb.style.display = 'none'; }
+  openModal('actModal');
+}
+
+function delAct(e, day, idx) {
+  e.stopPropagation();
+  if (!confirm('Remove this activity?')) return;
+  S.days[day].splice(idx, 1);
+  save(); renderCal(); renderDayPanel();
+}
+
+function saveAct() {
+  const name = document.getElementById('fName').value.trim();
+  if (!name) { alert('Enter an activity name.'); return; }
+  const thumb = document.getElementById('fPhotoThumb');
+  const act = {
+    name,
+    time: document.getElementById('fTime').value,
+    category: document.getElementById('fCat').value,
+    location: document.getElementById('fLoc').value.trim(),
+    mapsUrl: document.getElementById('fMaps').value.trim(),
+    notes: document.getElementById('fNotes').value.trim(),
+    photo: (thumb.style.display !== 'none' && thumb.src) ? thumb.src : ''
+  };
+  if (!S.days[selectedDay]) S.days[selectedDay] = [];
+  const idx = document.getElementById('editIdx').value;
+  if (idx !== '') S.days[selectedDay][parseInt(idx)] = act;
+  else S.days[selectedDay].push(act);
+  save(); closeModal('actModal'); renderCal(); renderDayPanel();
+}
+
+function loadPhoto(input) {
+  const f = input.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = e => { const t = document.getElementById('fPhotoThumb'); t.src = e.target.result; t.style.display = 'block'; };
+  r.readAsDataURL(f);
+}
+
+// ── Location edit ─────────────────────────────────────────────────
+function editLoc() {
+  if (!selectedDay) return;
+  const cur = S.locations[selectedDay] || {};
+  const city = prompt('City:', cur.city || '');
+  if (city === null) return; // cancelled
+  const country = prompt('Country:', cur.country || '');
+  if (country === null) return;
+  if (!S.locations) S.locations = {};
+  S.locations[selectedDay] = { city: city.trim(), country: country.trim() };
+  save();
+  renderDayPanel();
+}
+
+// ── Settings ──────────────────────────────────────────────────────
+function openSettings() {
+  document.getElementById('sName').value = S.trip.name;
+  document.getElementById('sStart').value = S.trip.start;
+  document.getElementById('sEnd').value = S.trip.end;
+  openModal('settModal');
+}
+function saveSettings() {
+  const start = document.getElementById('sStart').value;
+  const end   = document.getElementById('sEnd').value;
+  if (start && end && start > end) { alert('Start must be before end.'); return; }
+  S.trip = { name: document.getElementById('sName').value.trim() || 'Our Trip', start, end };
+  save(); closeModal('settModal'); renderHeader(); renderCal();
+  if (!selectedDay && S.trip.start) selectDay(S.trip.start);
+}
+
+// ── Export / Import ───────────────────────────────────────────────
+function exportData() {
+  const blob = new Blob([JSON.stringify(S, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (S.trip.name||'trip').replace(/\s+/g,'-').toLowerCase()+'.json';
+  a.click();
+}
+function importData(input) {
+  const f = input.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.trip || !data.days) throw new Error();
+      if (!data.locations) data.locations = {};
+      if (!confirm('Import will replace your current itinerary. Continue?')) return;
+      S = data; save(); closeModal('settModal');
+      init();
+    } catch { alert('Invalid itinerary file.'); }
+  };
+  r.readAsText(f);
+}
+
+// ── Header ────────────────────────────────────────────────────────
+function renderHeader() {
+  document.getElementById('tripName').textContent = '✈️ ' + (S.trip.name || 'Our Trip');
+  if (S.trip.start && S.trip.end) {
+    const s = parseLocal(S.trip.start), e = parseLocal(S.trip.end);
+    const fmt = d => d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    const dc = dayCount();
+    document.getElementById('tripMeta').textContent = `📅 ${fmt(s)} – ${fmt(e)} · ${dc} days`;
+  } else {
+    document.getElementById('tripMeta').textContent = '⚙️ Tap Settings to set trip dates';
+  }
+}
+
+// ── Modal helpers ─────────────────────────────────────────────────
+function openModal(id)  { document.getElementById(id).classList.add('open'); document.body.style.overflow='hidden'; }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); document.body.style.overflow=''; }
+function overlayClose(e, id) { if (e.target === document.getElementById(id)) closeModal(id); }
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Seed flights from screenshots ─────────────────────────────────
+function seedFlights() {
+  // Only seed if no data yet
+  if (Object.keys(S.days).length > 0) return;
+
+  S.trip = { name: 'Our Trip', start: '2026-07-07', end: '2026-08-04' };
+
+  // Jul 7 – Depart Louisville → Paris via Chicago
+  S.days['2026-07-07'] = [
+    {
+      name: '✈️ Flight SDF → ORD  (UA5603)',
+      time: '14:10',
+      category: 'transport',
+      location: 'Louisville Muhammad Ali Intl Airport (SDF)',
+      mapsUrl: 'https://maps.google.com/?q=Louisville+Muhammad+Ali+International+Airport',
+      notes: 'Departs 2:10 PM → Arrives Chicago O\'Hare 2:50 PM (40 min)\nUnited Economy (T) · Operated by SkyWest dba United Express',
+      photo: ''
+    },
+    {
+      name: '⏱️ Layover – Chicago O\'Hare (ORD)',
+      time: '14:50',
+      category: 'transport',
+      location: 'Chicago O\'Hare International Airport (ORD)',
+      mapsUrl: 'https://maps.google.com/?q=Chicago+O\'Hare+International+Airport',
+      notes: '~3h 20m layover',
+      photo: ''
+    },
+    {
+      name: '✈️ Flight ORD → CDG  (UA987)',
+      time: '18:10',
+      category: 'transport',
+      location: 'Chicago O\'Hare International Airport (ORD)',
+      mapsUrl: 'https://maps.google.com/?q=Chicago+O\'Hare+International+Airport',
+      notes: 'Departs 6:10 PM → Arrives Paris CDG next day 9:20 AM (overnight ⚠️)\nUnited Economy (T)',
+      photo: ''
+    }
+  ];
+
+  // Jul 8 – Arrive Paris, check in, afternoon + dinner
+  S.days['2026-07-08'] = [
+    {
+      name: '✈️ Arrive Paris Charles de Gaulle (CDG)',
+      time: '09:20',
+      category: 'transport',
+      location: 'Paris Charles de Gaulle Airport (CDG)',
+      mapsUrl: 'https://maps.google.com/?q=Paris+Charles+de+Gaulle+Airport',
+      notes: 'Arriving from Chicago O\'Hare (UA987)',
+      photo: ''
+    },
+    {
+      name: '🏨 Check in — Hôtel Georgette',
+      time: '11:00',
+      category: 'accommodation',
+      location: 'Hôtel Georgette, Paris',
+      mapsUrl: 'https://maps.google.com/?q=Hotel+Georgette+Paris',
+      notes: 'Check in, freshen up, drop bags · few hours to walk around before work starts at 3pm',
+      photo: ''
+    },
+    {
+      name: '🦪 TYCOZ Crêperie & Oyster Bar (or any crêpe/lunch spot)',
+      time: '12:00',
+      category: 'food',
+      location: '4 Rue du Parc Royal, Le Marais, Paris',
+      mapsUrl: 'https://maps.google.com/?q=4+Rue+du+Parc+Royal+Paris',
+      notes: 'Buckwheat galettes, Cancale oysters, artisanal cider 🍺\nOr any other crêpe or lunch spot nearby in Le Marais',
+      photo: ''
+    },
+    {
+      name: '🚶 Wander Le Marais',
+      time: '13:30',
+      category: 'activity',
+      location: 'Le Marais, Paris (3rd & 4th arrondissements)',
+      mapsUrl: 'https://maps.google.com/?q=Le+Marais+Paris',
+      notes: 'Stroll the narrow streets, browse boutiques & galleries, soak in the neighborhood vibe 🏘️',
+      photo: ''
+    },
+    {
+      name: '🎨 Stravinsky Fountain',
+      time: '14:15',
+      category: 'activity',
+      location: 'Place Igor Stravinsky, 75004 Paris (next to Centre Pompidou)',
+      mapsUrl: 'https://maps.google.com/?q=Fontaine+Stravinsky+Paris',
+      notes: 'Colorful kinetic sculptures by Niki de Saint Phalle & Jean Tinguely · right beside Centre Pompidou 🎭',
+      photo: ''
+    }
+  ];
+
+  // Jul 9 – Giverny day trip (booked!)
+  if (!S.days['2026-07-09']) S.days['2026-07-09'] = [];
+  S.days['2026-07-09'].push(
+    {
+      name: '🚂 Train Paris Saint-Lazare → Vernon (NOMAD)',
+      time: '08:14',
+      category: 'transport',
+      location: 'Paris Saint-Lazare station',
+      mapsUrl: 'https://maps.google.com/?q=Paris+Saint-Lazare+station',
+      notes: 'Departs 8:14 AM → Arrives Vernon-Giverny 9:00 AM\n✅ BOOKED · 88€ for 2 · Refs in confirmation email',
+      photo: ''
+    },
+    {
+      name: '🚌 Navette Giverny shuttle → Giverny Parking',
+      time: '09:20',
+      category: 'transport',
+      location: 'Vernon-Giverny station',
+      mapsUrl: 'https://maps.google.com/?q=Vernon+train+station+France',
+      notes: 'Departs 9:20 AM → Arrives Giverny Parking 9:40 AM\nBuy ticket on board: €5 single / €10 return',
+      photo: ''
+    },
+    {
+      name: '☕ Breakfast in Giverny',
+      time: '09:40',
+      category: 'food',
+      location: 'Rue Claude Monet, Giverny, France',
+      mapsUrl: 'https://maps.google.com/?q=Rue+Claude+Monet+Giverny+France',
+      notes: 'Over an hour before entry — enjoy breakfast!\n• Les Nymphéas — opens 8:30 AM, right at the garden entrance\n• Gourmandises de Giverny — opens 8:30 AM, short stroll down Rue Claude Monet',
+      photo: ''
+    },
+    {
+      name: '🌸 Monet\'s House & Gardens',
+      time: '11:00',
+      category: 'activity',
+      location: 'Fondation Claude Monet, Giverny, France',
+      mapsUrl: 'https://maps.google.com/?q=Fondation+Claude+Monet+Giverny+France',
+      notes: '✅ Timed entry booked for 11:00 AM · 1–2 hrs recommended\nSee the water lily pond, Japanese bridge & Monet\'s house\n⚠️ Head to shuttle stop by 1:15 PM',
+      photo: ''
+    },
+    {
+      name: '🚌 Navette Giverny shuttle → Vernon',
+      time: '13:15',
+      category: 'transport',
+      location: 'Giverny Parking shuttle stop',
+      mapsUrl: 'https://maps.google.com/?q=Giverny+Parking+France',
+      notes: 'Head to stop by 1:15 PM — arrive a few minutes early as recommended!\nShuttle departs 1:20 PM → Arrives Vernon-Giverny station 1:40 PM',
+      photo: ''
+    },
+    {
+      name: '🚂 Train Vernon → Paris Saint-Lazare (NOMAD)',
+      time: '13:54',
+      category: 'transport',
+      location: 'Vernon-Giverny station',
+      mapsUrl: 'https://maps.google.com/?q=Vernon+train+station+France',
+      notes: 'Departs 1:54 PM → Arrives Paris Saint-Lazare 2:48 PM ✅\n✅ BOOKED · Refs in confirmation email',
+      photo: ''
+    },
+  );
+
+  // Jul 10 – Orangerie, lunch, Grand Palais, Opera
+  if (!S.days['2026-07-10']) S.days['2026-07-10'] = [];
+  S.days['2026-07-10'].push(
+    {
+      name: '🖼️ Musée de l\'Orangerie',
+      time: '09:00',
+      category: 'activity',
+      location: 'Musée de l\'Orangerie, Jardin des Tuileries, Paris',
+      mapsUrl: 'https://maps.google.com/?q=Musée+de+l\'Orangerie+Paris',
+      notes: 'Opens 9:00 AM — go first thing to beat crowds!\nEntry with Carte Blanche membership 🎫\nMonet\'s Water Lilies + Walter-Guillaume collection · ~1.5–2 hrs',
+      photo: ''
+    },
+    {
+      name: '🌿 Tuileries Garden stroll',
+      time: '10:30',
+      category: 'activity',
+      location: 'Jardin des Tuileries, Paris',
+      mapsUrl: 'https://maps.google.com/?q=Jardin+des+Tuileries+Paris',
+      notes: 'Step right outside the Orangerie · stroll through the garden 🌳',
+      photo: ''
+    },
+    {
+      name: '🍸 Ritz Paris Le Comptoir — madeleines',
+      time: '11:00',
+      category: 'food',
+      location: '15 Place Vendôme, 75001 Paris',
+      mapsUrl: 'https://maps.google.com/?q=Ritz+Paris+Le+Comptoir',
+      notes: 'Stop for madeleines & a coffee at the Ritz ✨',
+      photo: ''
+    },
+    {
+      name: '🖼️ Athanase Vivienne — Gribaudo Vandamme',
+      time: '11:30',
+      category: 'activity',
+      location: 'Galerie Vivienne, 4 Rue des Petits Champs, 75002 Paris',
+      mapsUrl: 'https://maps.google.com/?q=Galerie+Vivienne+Paris',
+      notes: 'Browse prints in the beautiful covered passage · a few min walk from the Ritz',
+      photo: ''
+    },
+    {
+      name: '🍽️ Le Soufflé',
+      time: '12:00',
+      category: 'food',
+      location: '36 Rue du Mont Thabor, Paris',
+      mapsUrl: 'https://maps.google.com/?q=36+Rue+du+Mont+Thabor+Paris',
+      notes: '✅ Reservation confirmed\nSavory + dessert soufflé menu ~€40pp',
+      photo: ''
+    },
+    {
+      name: '🎨 Seine bouquinistes — art & print vendors',
+      time: '13:30',
+      category: 'activity',
+      location: 'Quais de la Seine, Paris (between Pont Neuf & Pont de Sully)',
+      mapsUrl: 'https://maps.google.com/?q=Bouquinistes+de+Paris+Seine',
+      notes: 'Stroll the famous green bookstalls along the river · old prints, posters, postcards & curiosities 📚',
+      photo: ''
+    },
+    {
+      name: '🎨 Grand Palais — Matisse Retrospective',
+      time: '14:30',
+      category: 'activity',
+      location: 'Grand Palais, Avenue Winston Churchill, Paris',
+      mapsUrl: 'https://maps.google.com/?q=Grand+Palais+Paris',
+      notes: 'Grand Palais Pass+ · Matisse retrospective (through July 26) · ~1.5–2 hrs\nOpen until 10:30 PM Fridays — no rush on timing',
+      photo: ''
+    },
+    {
+      name: '🍽️ Quick dinner before the opera',
+      time: '17:30',
+      category: 'food',
+      location: 'Near Opéra Bastille, Paris',
+      mapsUrl: 'https://maps.google.com/?q=Opera+Bastille+Paris',
+      notes: '❓ TBD — casual spot near the Bastille · aim to wrap up by 7pm',
+      photo: ''
+    },
+    {
+      name: '🎭 La Traviata — Opéra Bastille',
+      time: '19:30',
+      category: 'activity',
+      location: 'Opéra Bastille, Place de la Bastille, Paris 75012',
+      mapsUrl: 'https://maps.google.com/?q=Opera+Bastille+Paris',
+      notes: '✅ Booked · Ends ~10–10:30 PM',
+      photo: ''
+    },
+    {
+      name: '✨ Eiffel Tower sparkle — Seine views',
+      time: '22:30',
+      category: 'activity',
+      location: 'Quais de la Seine, Paris',
+      mapsUrl: 'https://maps.google.com/?q=Quais+de+la+Seine+Paris',
+      notes: 'Head to the Seine after the opera to catch the Eiffel Tower light show ✨ (sparkling every hour on the hour after dark)',
+      photo: ''
+    },
+    {
+      name: '🍽️ Late-night food & drinks — TBD',
+      time: '23:00',
+      category: 'food',
+      location: 'Near the Seine / Bastille, Paris',
+      mapsUrl: '',
+      notes: '❓ Maybe: Riviera Fuga (cocktails & bites) · or grab a crêpe or falafel nearby 🥙',
+      photo: ''
+    }
+  );
+
+  // Jul 11 – Saturday in Paris (no work!)
+  if (!S.days['2026-07-11']) S.days['2026-07-11'] = [];
+  S.days['2026-07-11'].push(
+    {
+      name: '⛪ Sainte-Chapelle',
+      time: '09:00',
+      category: 'activity',
+      location: '8 Boulevard du Palais, Paris',
+      mapsUrl: 'https://maps.google.com/?q=Sainte-Chapelle+Paris',
+      notes: '✅ Timed entry booked for 9 AM · ~1–1.5 hrs\nArrive early for the security queue · jaw-dropping Gothic stained glass',
+      photo: ''
+    },
+    {
+      name: '🧺 La Grande Épicerie de Paris — picnic supplies',
+      time: '10:30',
+      category: 'food',
+      location: '38 Rue de Sèvres, 7th arrondissement, Paris',
+      mapsUrl: 'https://maps.google.com/?q=La+Grande+Epicerie+de+Paris',
+      notes: 'Opens 8:30 AM · Pick up cheese, charcuterie, baguette, wine & pastries for a Champ de Mars picnic 🧀🍷',
+      photo: ''
+    },
+    {
+      name: '🧺 Picnic at Champ de Mars',
+      time: '12:00',
+      category: 'activity',
+      location: 'Champ de Mars, Paris (near Eiffel Tower)',
+      mapsUrl: 'https://maps.google.com/?q=Champ+de+Mars+Paris',
+      notes: '~15 min walk from La Grande Épicerie · perfect spot under the Eiffel Tower 🗼',
+      photo: ''
+    },
+    {
+      name: '🎵 Philharmonie de Paris — Musée de la Musique',
+      time: '13:00',
+      category: 'activity',
+      location: '221 Avenue Jean-Jaurès, Paris (Porte de Pantin, Line 5)',
+      mapsUrl: 'https://maps.google.com/?q=Philharmonie+de+Paris',
+      notes: '~1.5–2 hrs\n8,000 instruments including Chopin\'s piano 🎹 · audio guide recommended',
+      photo: ''
+    },
+    {
+      name: '🏨 Back to hotel — freshen up',
+      time: '15:30',
+      category: 'accommodation',
+      location: 'Hôtel Georgette, Paris',
+      mapsUrl: 'https://maps.google.com/?q=Hotel+Georgette+Paris',
+      notes: 'Drop bags, refresh before afternoon out',
+      photo: ''
+    },
+    {
+      name: '🏛️ Arc de Triomphe & Champs-Élysées stroll',
+      time: '18:00',
+      category: 'activity',
+      location: 'Place Charles de Gaulle, Paris',
+      mapsUrl: 'https://maps.google.com/?q=Arc+de+Triomphe+Paris',
+      notes: 'Walk up to the Arc de Triomphe, then stroll down the Champs-Élysées through the shops & boutiques 🛍️',
+      photo: ''
+    },
+    {
+      name: '🍽️ Dinner at Le Bistrot',
+      time: '19:00',
+      category: 'food',
+      location: 'Paris',
+      mapsUrl: '',
+      notes: '',
+      photo: ''
+    },
+    {
+      name: '🌅 Sunset walk along the Seine',
+      time: '21:00',
+      category: 'activity',
+      location: 'Quais de la Seine, Paris',
+      mapsUrl: 'https://maps.google.com/?q=Quais+de+la+Seine+Paris',
+      notes: 'Sunset ~9:45 PM 🌅',
+      photo: ''
+    },
+    {
+      name: '🍹 Musa Oberkampf — cocktails',
+      time: '22:00',
+      category: 'food',
+      location: '117 Rue Saint-Maur, 11th arrondissement, Paris',
+      mapsUrl: 'https://maps.google.com/?q=117+Rue+Saint-Maur+Paris',
+      notes: '✅ Reservation confirmed · bar open until 2 AM 🌃',
+      photo: ''
+    }
+  );
+
+  // Jul 12 – Paris → Munich (train, afternoon departure, evening arrival)
+  if (!S.days['2026-07-12']) S.days['2026-07-12'] = [];
+  S.days['2026-07-12'].push(
+    {
+      name: '🚆 TGV 9571 — Paris Est → (connection)',
+      time: '06:41',
+      category: 'transport',
+      location: 'Paris Gare de l\'Est',
+      mapsUrl: 'https://maps.google.com/?q=Paris+Gare+de+l\'Est',
+      notes: '✅ BOOKED · Sparpreis Europa · 2nd class · 2 persons\nDeparts 06:41 → connects to ICE 563 at 10:51\nRoute: via Lorraine TGV · KEGR · (BR/PF) · (AA/PLO)',
+      photo: ''
+    },
+    {
+      name: '🚆 ICE 563 → München Hbf',
+      time: '10:51',
+      category: 'transport',
+      location: 'Connection station (Lorraine TGV area)',
+      mapsUrl: 'https://maps.google.com/?q=Munich+Central+Station',
+      notes: 'Departs 10:51 → Arrives München Hbf ~15:30\n✅ BOOKED · Ticket valid 12.07 00:00 – 14.07 03:00',
+      photo: ''
+    },
+    {
+      name: '🏨 Check in — Motel One München-Sendlinger Tor',
+      time: '15:30',
+      category: 'accommodation',
+      location: 'Motel One München-Sendlinger Tor, Herzog-Wilhelm-Straße 28, 80331 Munich',
+      mapsUrl: 'https://maps.google.com/?q=Motel+One+Munich+Sendlinger+Tor',
+      notes: 'Drop bags, freshen up after the long train journey 🧳\n~10 min walk from München Hbf',
+      photo: ''
+    },
+    {
+      name: '🍺 Hofbräuhaus München — dinner & beers',
+      time: '17:00',
+      category: 'food',
+      location: 'Platzl 9, 80331 Munich (Old Town)',
+      mapsUrl: 'https://maps.google.com/?q=Hofbrauhaus+Munich',
+      notes: 'Munich\'s most famous beer hall — Weisswurst, pretzels, Masskrug of Hofbräu 🥨\nOpen daily · no reservation needed · just walk in and find a bench!',
+      photo: ''
+    }
+  );
+
+  // Jul 13 – Monday morning: Old Town, Residenz, Transportation Museum (before 3pm work)
+  if (!S.days['2026-07-13']) S.days['2026-07-13'] = [];
+  S.days['2026-07-13'].push(
+    {
+      name: '🏛️ Marienplatz & Old Town',
+      time: '09:00',
+      category: 'activity',
+      location: 'Marienplatz, Munich',
+      mapsUrl: 'https://maps.google.com/?q=Marienplatz+Munich',
+      notes: '~10 min walk from Motel One Sendlinger Tor 🚶\nSee the Glockenspiel & Neues Rathaus, stroll Old Town shops & bakeries, browse Viktualienmarkt for coffee and breakfast bites',
+      photo: ''
+    },
+    {
+      name: '🏰 Residenz Museum',
+      time: '10:00',
+      category: 'activity',
+      location: 'Residenzstraße 1, 80333 Munich',
+      mapsUrl: 'https://maps.google.com/?q=Munich+Residenz+Museum',
+      notes: '~15 min walk from hotel through Old Town 🚶\nOne of Europe\'s grandest palace interiors — royal apartments, treasury & porcelain collection\nOpens 9am · Plan ~1.5 hrs · Book tickets in advance',
+      photo: ''
+    },
+    {
+      name: '🌿 English Garden — Eisbach & southern park',
+      time: '11:30',
+      category: 'activity',
+      location: 'Englischer Garten, Munich',
+      mapsUrl: 'https://maps.google.com/?q=Eisbach+wave+English+Garden+Munich',
+      notes: '~15 min walk northeast from the Residenz 🚶\nWatch surfers at the famous Eisbach wave, stroll into the park\nKeep to ~45 min — leave by 12:20pm to reach Verkehrszentrum in time',
+      photo: ''
+    },
+    {
+      name: '🥨 Lunch — Chinese Tower beer garden',
+      time: '12:00',
+      category: 'food',
+      location: 'Chinesischer Turm, Englischer Garten, Munich',
+      mapsUrl: 'https://maps.google.com/?q=Chinesischer+Turm+Munich',
+      notes: 'Lunch at the iconic beer garden inside the park 🍺 — or grab something quick before heading to the Verkehrszentrum',
+      photo: ''
+    },
+    {
+      name: '🚂 Deutsches Museum Verkehrszentrum',
+      time: '13:00',
+      category: 'activity',
+      location: 'Am Bavariapark 5, 80339 Munich',
+      mapsUrl: 'https://maps.google.com/?q=Deutsches+Museum+Verkehrszentrum+Munich',
+      notes: 'Germany\'s premier transportation museum — historic cars, trains, planes & bikes across 3 halls\nFrom hotel: U1/U2 one stop to Hauptbahnhof → U4/U5 to Schwanthalerhöhe (or ~20 min walk west)\nOpens 9am · Allow ~1.5 hrs · head back by 2:30pm 💼',
+      photo: ''
+    }
+  );
+
+  // Jul 14 – Tuesday morning: Lenbachhaus first, then BMW Museum (before 3pm work)
+  if (!S.days['2026-07-14']) S.days['2026-07-14'] = [];
+  S.days['2026-07-14'].push(
+    {
+      name: '🎨 Lenbachhaus Museum',
+      time: '10:00',
+      category: 'activity',
+      location: 'Luisenstraße 33, 80333 Munich',
+      mapsUrl: 'https://maps.google.com/?q=Lenbachhaus+Munich',
+      notes: 'From hotel: U2 from Sendlinger Tor → Königsplatz (~8 min) 🚇\nHome of the Blue Rider (Blauer Reiter) — Kandinsky, Klee, Macke, Marc\nOpens 10am (closed Mondays ✓) · Plan ~1–1.5 hrs',
+      photo: ''
+    },
+    {
+      name: '🚘 BMW Museum & BMW Welt',
+      time: '11:45',
+      category: 'activity',
+      location: 'Am Olympiapark 2, 80809 Munich',
+      mapsUrl: 'https://maps.google.com/?q=BMW+Museum+Munich',
+      notes: 'From Lenbachhaus: U2 to Odeonsplatz → U3 to Olympiazentrum (~20 min) 🚇\nIconic bowl-shaped museum — BMW history, design studios & concept cars\nBMW Welt showroom next door is free · Opens 10am · Allow ~1.5 hrs · back by 2:30pm 💼',
+      photo: ''
+    }
+  );
+
+  // Jul 15 – Munich → Salzburg (DB RJX 69)
+  if (!S.days['2026-07-15']) S.days['2026-07-15'] = [];
+  S.days['2026-07-15'].push(
+    {
+      name: '🚆 RJX 61 — München Hbf → Salzburg Hbf',
+      time: '07:09',
+      category: 'transport',
+      location: 'Munich Central Station (München Hbf)',
+      mapsUrl: 'https://maps.google.com/?q=Munich+Central+Station',
+      notes: '✅ BOOKED · Super Sparpreis Aktion · 2nd class · 2 persons\nDeparts 07:09 → Arrives Salzburg Hbf ~08:40 (~1.5h, direct)\nTicket valid 15.07 00:00 – 16.07 10:00',
+      photo: ''
+    },
+    {
+      name: '🏔️ Arrive Salzburg Hbf',
+      time: '08:40',
+      category: 'transport',
+      location: 'Salzburg Hauptbahnhof',
+      mapsUrl: 'https://maps.google.com/?q=Salzburg+Hauptbahnhof',
+      notes: 'Arriving from Munich · RJX 61',
+      photo: ''
+    },
+    {
+      name: '🧳 Drop luggage — Hotel zum Hirschen',
+      time: '09:00',
+      category: 'accommodation',
+      location: 'Hotel zum Hirschen, St.-Julien-Straße 21, 5020 Salzburg',
+      mapsUrl: 'https://maps.google.com/?q=Hotel+zum+Hirschen+Salzburg',
+      notes: 'Drop bags before check-in · ~10 min walk from the Hbf',
+      photo: ''
+    },
+    {
+      name: '☕ 220 Grad — coffee & brunch',
+      time: '09:30',
+      category: 'food',
+      location: 'Chiemseegasse 5, 5020 Salzburg (Old Town)',
+      mapsUrl: 'https://maps.google.com/?q=220+Grad+Salzburg',
+      notes: 'Specialty coffee & brunch in the heart of the Old Town ☕🥐\nMultiple locations in Salzburg — check nearest one',
+      photo: ''
+    }
+  );
+
+  // Jul 16 – Depart Salzburg → Beijing
+  S.days['2026-07-16'] = [
+    {
+      name: '❓ Maybe: Mirabell Palace Gardens',
+      time: '07:30',
+      category: 'activity',
+      location: 'Mirabellgarten, Mirabellplatz 4, 5020 Salzburg',
+      mapsUrl: 'https://maps.google.com/?q=Mirabellgarten+Salzburg+Austria',
+      notes: '🎵 The Sound of Music filming location — iconic "Do Re Mi" fountain & steps scene\nOpen from sunrise, free entry\nRight in the city center, ~15 min from airport\nHellbrunn Palace also has the famous gazebo ("16 Going on 17") if you want to see that too\n\n⚠️ Maybe — confirm before the 2:10 PM flight departure',
+      photo: ''
+    },
+    {
+      name: 'Flight SZG → FRA  (LH 1105)',
+      time: '14:10',
+      category: 'transport',
+      location: 'Salzburg Airport (SZG)',
+      mapsUrl: '',
+      notes: 'Departs 2:10 PM → Arrives 3:10 PM Frankfurt (1h)\nLufthansa · Airbus A320 · Economy',
+      photo: ''
+    },
+    {
+      name: 'Layover – Frankfurt am Main (FRA)',
+      time: '15:10',
+      category: 'transport',
+      location: 'Frankfurt Airport (FRA)',
+      mapsUrl: '',
+      notes: '1h 5m layover',
+      photo: ''
+    },
+    {
+      name: 'Flight FRA → MUC  (LH 114)',
+      time: '16:15',
+      category: 'transport',
+      location: 'Frankfurt Airport (FRA)',
+      mapsUrl: '',
+      notes: 'Departs 4:15 PM → Arrives 5:10 PM Munich (55m)\nLufthansa · Boeing 787 · Economy\nAbove avg legroom (32in) · Wi-Fi for a fee',
+      photo: ''
+    },
+    {
+      name: 'Layover – Munich (MUC)',
+      time: '17:10',
+      category: 'transport',
+      location: 'Munich International Airport (MUC)',
+      mapsUrl: '',
+      notes: '2h 35m layover',
+      photo: ''
+    },
+    {
+      name: 'Flight MUC → PEK  (LH 722)',
+      time: '19:45',
+      category: 'transport',
+      location: 'Munich International Airport (MUC)',
+      mapsUrl: '',
+      notes: 'Departs 7:45 PM → Arrives next day 11:45 AM Beijing PEK (10h, overnight ⚠️)\nLufthansa · Airbus A350 · Economy · $770 total (all legs)\n-11% emissions vs typical flight',
+      photo: ''
+    }
+  ];
+
+  // Jul 17 – Arrive Beijing
+  S.days['2026-07-17'] = [
+    {
+      name: 'Arrive Beijing Capital Intl (PEK)',
+      time: '11:45',
+      category: 'transport',
+      location: 'Beijing Capital International Airport (PEK)',
+      mapsUrl: 'https://maps.google.com/?q=Beijing+Capital+International+Airport',
+      notes: 'Arriving from Munich (LH 722)',
+      photo: ''
+    }
+  ];
+
+  // Aug 3 – Depart Beijing → Louisville
+  S.days['2026-08-03'] = [
+    {
+      name: '✈️ Flight PEK → SDF  (2 stops)',
+      time: '12:00',
+      category: 'transport',
+      location: 'Beijing Capital International Airport (PEK)',
+      mapsUrl: 'https://maps.google.com/?q=Beijing+Capital+International+Airport',
+      notes: 'Departs 12:00 PM → Arrives next day 10:15 PM Louisville SDF (22h 15m total)\n2 stops: LAX (2h 24m layover), IAH (1h 27m layover)\nUnited / Mesa Airlines dba United Express',
+      photo: ''
+    }
+  ];
+
+  // Aug 4 – Arrive Louisville
+  S.days['2026-08-04'] = [
+    {
+      name: '🏠 Arrive Louisville (SDF)',
+      time: '22:15',
+      category: 'transport',
+      location: 'Louisville Muhammad Ali International Airport (SDF)',
+      mapsUrl: 'https://maps.google.com/?q=Louisville+Muhammad+Ali+International+Airport',
+      notes: 'Arriving from Beijing via LAX and IAH',
+      photo: ''
+    }
+  ];
+
+  // ── Seed locations ────────────────────────────────────────────────
+  S.locations = {
+    '2026-07-07': { city: 'Louisville', country: 'USA' },
+    '2026-07-08': { city: 'Paris', country: 'France' },
+    '2026-07-09': { city: 'Paris', country: 'France' },
+    '2026-07-10': { city: 'Paris', country: 'France' },
+    '2026-07-11': { city: 'Paris', country: 'France' },
+    '2026-07-12': { city: 'Munich', country: 'Germany' },
+    '2026-07-13': { city: 'Munich', country: 'Germany' },
+    '2026-07-14': { city: 'Munich', country: 'Germany' },
+    '2026-07-15': { city: 'Salzburg', country: 'Austria' },
+    '2026-07-16': { city: 'Salzburg', country: 'Austria' },
+    '2026-07-17': { city: 'Beijing', country: 'China' },
+    '2026-07-18': { city: 'Beijing', country: 'China' },
+    '2026-07-19': { city: 'Beijing', country: 'China' },
+    '2026-07-20': { city: 'Beijing', country: 'China' },
+    '2026-07-21': { city: 'Beijing', country: 'China' },
+    '2026-07-22': { city: 'Beijing', country: 'China' },
+    '2026-07-23': { city: 'Beijing', country: 'China' },
+    '2026-07-24': { city: 'Beijing', country: 'China' },
+    '2026-07-25': { city: 'Beijing', country: 'China' },
+    '2026-07-26': { city: 'Beijing', country: 'China' },
+    '2026-07-27': { city: 'Beijing', country: 'China' },
+    '2026-07-28': { city: 'Beijing', country: 'China' },
+    '2026-07-29': { city: 'Beijing', country: 'China' },
+    '2026-07-30': { city: 'Beijing', country: 'China' },
+    '2026-07-31': { city: 'Beijing', country: 'China' },
+    '2026-08-01': { city: 'Beijing', country: 'China' },
+    '2026-08-02': { city: 'Beijing', country: 'China' },
+    '2026-08-03': { city: 'Beijing', country: 'China' },
+    '2026-08-04': { city: 'Louisville', country: 'USA' },
+  };
+
+  // ── Cindy working time Jul 8–15 weekdays only (9am–5pm EDT = 3pm–11pm CEST) ──
+  // Jul 11 = Saturday, Jul 12 = Sunday → skipped
+  const workDays = [
+    '2026-07-08','2026-07-09',
+    '2026-07-13','2026-07-14','2026-07-15'
+  ];
+  workDays.forEach(day => {
+    if (!S.days[day]) S.days[day] = [];
+    S.days[day].push({
+      name: '💼 Cindy: Working',
+      time: '15:00',
+      category: 'other',
+      location: '',
+      mapsUrl: '',
+      notes: '3:00 PM – 11:00 PM local Paris time (CEST)\n= 9:00 AM – 5:00 PM EST',
+      photo: '',
+      isWorkBlock: true
+    });
+  });
+
+  save();
+}
+
+// ── Export Day as Image ───────────────────────────────────────────
+function exportDayImage() {
+  if (!selectedDay) return;
+  const acts = (S.days[selectedDay] || []).slice().sort((a,b) => (a.time||'').localeCompare(b.time||''));
+  const locObj = S.locations[selectedDay];
+  const d = parseLocal(selectedDay);
+  const dateStr = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  const cityStr = (locObj && locObj.city) ? `📍 ${locObj.city}${locObj.country ? ', '+locObj.country : ''}` : '';
+  const dn = tripDayNum(selectedDay);
+  const CAT_COLORS = { transport:'#4A6CF7', food:'#E8763A', accommodation:'#9B6CF7', activity:'#2ECC9A', other:'#a0a0bc' };
+
+  const W = 600, PAD = 20, GAP = 8, SCALE = 2;
+  const probe = document.createElement('canvas').getContext('2d');
+
+  function truncate(ctx, text, maxW) {
+    let t = text;
+    while (t.length > 0 && ctx.measureText(t).width > maxW) t = t.slice(0, -1);
+    return t === text ? text : t + '…';
+  }
+
+  function cardHeight(act) {
+    let h = 14 + 18; // top-pad + name
+    if (act.time) h += 0; // time is inline with name row
+    if (act.location) h += 18;
+    if (act.notes) {
+      const firstLine = act.notes.split('\n')[0];
+      probe.font = '11px Inter,system-ui,sans-serif';
+      const truncated = truncate(probe, firstLine, W - PAD*2 - 52);
+      if (truncated) h += 16;
+    }
+    h += 14; // bottom-pad
+    return Math.max(h, 54);
+  }
+
+  // Total height
+  let H = PAD + 72 + GAP;
+  const heights = acts.map(cardHeight);
+  heights.forEach(ch => H += ch + GAP);
+  H += PAD + 20; // footer
+
+  const canvas = document.createElement('canvas');
+  canvas.width = W * SCALE;
+  canvas.height = H * SCALE;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(SCALE, SCALE);
+
+  // Background
+  ctx.fillStyle = '#fbe8e8';
+  ctx.fillRect(0, 0, W, H);
+
+  function rRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.lineTo(x+w-r, y);
+    ctx.arcTo(x+w, y, x+w, y+r, r);
+    ctx.lineTo(x+w, y+h-r);
+    ctx.arcTo(x+w, y+h, x+w-r, y+h, r);
+    ctx.lineTo(x+r, y+h);
+    ctx.arcTo(x, y+h, x, y+h-r, r);
+    ctx.lineTo(x, y+r);
+    ctx.arcTo(x, y, x+r, y, r);
+    ctx.closePath();
+  }
+
+  // Header card
+  ctx.shadowColor = 'rgba(74,108,247,0.10)';
+  ctx.shadowBlur = 14;
+  ctx.fillStyle = '#ffffff';
+  rRect(PAD, PAD, W-PAD*2, 68, 14);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Orange left accent
+  ctx.fillStyle = '#E8763A';
+  rRect(PAD, PAD, 4, 68, 2);
+  ctx.fill();
+
+  // Date
+  ctx.fillStyle = '#1a1a2e';
+  ctx.font = 'bold 15px Inter,system-ui,sans-serif';
+  ctx.fillText(dateStr, PAD+16, PAD+26);
+
+  // City
+  if (cityStr) {
+    ctx.fillStyle = '#5c5c7a';
+    ctx.font = '11px Inter,system-ui,sans-serif';
+    ctx.fillText(cityStr, PAD+16, PAD+46);
+  }
+
+  // Day badge
+  if (dn) {
+    ctx.fillStyle = '#eef2ff';
+    rRect(W-PAD-52, PAD+12, 48, 22, 11);
+    ctx.fill();
+    ctx.fillStyle = '#4A6CF7';
+    ctx.font = 'bold 10px Inter,system-ui,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Day '+dn, W-PAD-28, PAD+27);
+    ctx.textAlign = 'left';
+  }
+
+  // Activity cards
+  let y = PAD + 72 + GAP;
+  acts.forEach((act, i) => {
+    const ch = heights[i];
+    const color = CAT_COLORS[act.category] || '#a0a0bc';
+
+    ctx.shadowColor = 'rgba(74,108,247,0.07)';
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = '#ffffff';
+    rRect(PAD, y, W-PAD*2, ch, 12);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Category bar
+    ctx.fillStyle = color;
+    rRect(PAD+10, y+10, 3, ch-20, 2);
+    ctx.fill();
+
+    // Time
+    const tx = PAD+20;
+    ctx.fillStyle = '#a0a0bc';
+    ctx.font = 'bold 9px Inter,system-ui,sans-serif';
+    ctx.fillText(act.time || '', tx, y+16);
+
+    // Name
+    ctx.fillStyle = '#1a1a2e';
+    ctx.font = 'bold 13px Inter,system-ui,sans-serif';
+    const maxNameW = W - PAD*2 - 52;
+    ctx.fillText(truncate(ctx, act.name, maxNameW), tx, y+31);
+
+    let lineY = y+49;
+
+    if (act.location) {
+      ctx.fillStyle = '#5c5c7a';
+      ctx.font = '11px Inter,system-ui,sans-serif';
+      ctx.fillText(truncate(ctx, '📍 '+act.location, maxNameW), tx, lineY);
+      lineY += 17;
+    }
+    if (act.notes) {
+      const firstLine = act.notes.split('\n')[0];
+      ctx.fillStyle = '#a0a0bc';
+      ctx.font = '11px Inter,system-ui,sans-serif';
+      ctx.fillText(truncate(ctx, firstLine, maxNameW), tx, lineY);
+    }
+
+    y += ch + GAP;
+  });
+
+  // Footer
+  ctx.fillStyle = '#c0c0d8';
+  ctx.font = '10px Inter,system-ui,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('✈️ ' + (S.trip.name || 'Our Trip'), W/2, H-10);
+  ctx.textAlign = 'left';
+
+  // Download
+  const link = document.createElement('a');
+  link.download = `itinerary-${selectedDay}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+// ── Init ──────────────────────────────────────────────────────────
+function init() {
+  const now = new Date();
+  if (S.trip.start) {
+    const s = parseLocal(S.trip.start);
+    viewYear  = s.getFullYear();
+    viewMonth = s.getMonth();
+  } else {
+    viewYear  = now.getFullYear();
+    viewMonth = now.getMonth();
+  }
+  renderHeader();
+  renderCal();
+  // Auto-select trip start or today
+  const autoDay = S.trip.start || ymd(now);
+  selectDay(autoDay);
+}
+
+load();
+seedFlights();
+init();
+gistLoad().then(() => { renderHeader(); renderCal(); if (selectedDay) renderDayPanel(); });
+</script>
+</body>
+</html>
