@@ -165,6 +165,20 @@ textarea { resize: vertical; min-height: 68px; }
 </head>
 <body>
 
+<!-- Passcode gate -->
+<div id="lockScreen" style="position:fixed;inset:0;z-index:99999;background:linear-gradient(135deg,#fdf2f8,#fce7f3);display:flex;align-items:center;justify-content:center;">
+  <div style="background:#fff;padding:32px 28px;border-radius:18px;box-shadow:0 10px 40px rgba(157,23,77,.15);max-width:320px;width:90%;text-align:center;font-family:system-ui,-apple-system,sans-serif;">
+    <div style="font-size:34px;margin-bottom:6px;">🔒✈️</div>
+    <div style="font-size:18px;font-weight:700;color:#9d174d;margin-bottom:4px;">Trip itinerary</div>
+    <div style="font-size:13px;color:#6b7280;margin-bottom:18px;">Enter the passcode to view.</div>
+    <input id="lockInput" type="password" inputmode="text" autocomplete="off" placeholder="Passcode"
+      style="width:100%;box-sizing:border-box;padding:11px 13px;border:1px solid #f3c5da;border-radius:11px;font-size:15px;outline:none;margin-bottom:10px;" />
+    <button id="lockBtn"
+      style="width:100%;padding:11px;border:none;border-radius:11px;background:#db2777;color:#fff;font-size:15px;font-weight:600;cursor:pointer;">Unlock</button>
+    <div id="lockErr" style="height:16px;margin-top:8px;font-size:12px;color:#dc2626;"></div>
+  </div>
+</div>
+
 <!-- Header -->
 <div class="header">
   <div class="header-row">
@@ -1515,10 +1529,47 @@ function init() {
   selectDay(autoDay);
 }
 
-load();
-seedFlights();
-init();
-gistLoad().then(() => { renderHeader(); renderCal(); if (selectedDay) renderDayPanel(); });
+// ── Passcode gate ──────────────────────────────────────────────────
+const PASS_HASH = '6c0de71d20ab61e7ed1c25b359aff517e6b2e63f03d2d2971065467bea9e17e7';
+let _booted = false;
+function boot() {
+  if (_booted) return; _booted = true;
+  load();
+  seedFlights();
+  init();
+  gistLoad().then(() => { renderHeader(); renderCal(); if (selectedDay) renderDayPanel(); });
+}
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+function unlockUI() {
+  const ls = document.getElementById('lockScreen');
+  if (ls) ls.style.display = 'none';
+  boot();
+}
+async function tryUnlock() {
+  const inp = document.getElementById('lockInput');
+  const err = document.getElementById('lockErr');
+  const h = await sha256((inp.value || '').trim().toLowerCase());
+  if (h === PASS_HASH) {
+    try { localStorage.setItem('itin_unlocked', PASS_HASH); } catch (e) {}
+    unlockUI();
+  } else {
+    err.textContent = 'Incorrect passcode';
+    inp.value = ''; inp.focus();
+  }
+}
+(function initLock() {
+  let remembered = false;
+  try { remembered = localStorage.getItem('itin_unlocked') === PASS_HASH; } catch (e) {}
+  if (remembered) { unlockUI(); return; }
+  const btn = document.getElementById('lockBtn');
+  const inp = document.getElementById('lockInput');
+  if (btn) btn.addEventListener('click', tryUnlock);
+  if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') tryUnlock(); });
+  if (inp) inp.focus();
+})();
 </script>
 </body>
 </html>
