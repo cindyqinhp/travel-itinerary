@@ -374,12 +374,8 @@ async function gistLoad() {
     if (!raw) return;
     const remote = JSON.parse(raw);
     const hasRemoteData = remote.trip?.name || Object.keys(remote.days || {}).length > 0;
-    const localT  = S._updatedAt || 0;
-    const remoteT = remote._updatedAt || 0;
-    if (hasRemoteData && remoteT >= localT) {
-      S = remote; persistLocal();        // remote is newer (or same) — adopt it, DON'T push back
-    } else if (hasRemoteData) {
-      gistPush();                        // local is genuinely newer — push it up
+    if (hasRemoteData) {
+      S = remote; persistLocal();        // Gist is the source of truth — always adopt on load. Prevents a stale browser from clobbering the Gist; explicit edits still push via save().
     } else {
       gistPush();                        // empty remote — seed it with local data
     }
